@@ -50,9 +50,6 @@ export default function LoginPage() {
             <div className="eyebrow">Welcome back</div>
             <h2 style={{ margin: 0 }}>Log in</h2>
           </div>
-          <a className="btn btn-secondary" href="/register">
-            Create account
-          </a>
         </div>
         <form onSubmit={handleSubmit} className="form-grid" style={{ display: "grid", gap: 14 }}>
           <label>
