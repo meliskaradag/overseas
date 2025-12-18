@@ -1,5 +1,26 @@
 const path = require("path");
-const Database = require("better-sqlite3");
+const { spawnSync } = require("child_process");
+const loadDatabase = () => {
+  try {
+    return require("better-sqlite3");
+  } catch (err) {
+    const needsRebuild = err?.code === "ERR_DLOPEN_FAILED" || /NODE_MODULE_VERSION/.test(err?.message || "");
+    if (!needsRebuild) throw err;
+    console.warn("[db] better-sqlite3 binary mismatch detected, attempting rebuild...");
+    const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+    const result = spawnSync(npmCmd, ["rebuild", "better-sqlite3"], {
+      cwd: path.join(__dirname, ".."),
+      stdio: "inherit"
+    });
+    if (result.status !== 0) {
+      console.error("[db] Failed to rebuild better-sqlite3. Please run `npm rebuild better-sqlite3` manually.");
+      throw err;
+    }
+    console.info("[db] Successfully rebuilt better-sqlite3, continuing startup.");
+    return require("better-sqlite3");
+  }
+};
+const Database = loadDatabase();
 const { v4: uuid } = require("uuid");
 const bcrypt = require("bcryptjs");
 const {
