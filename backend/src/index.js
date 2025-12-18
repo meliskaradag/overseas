@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
-const { getConversationById, createMessage } = require("./db");
+const { init, getConversationById, createMessage } = require("./db");
 const { verifySocketToken } = require("./middleware/auth");
 const documentsRoutes = require("./routes/documents");
 const appointmentsRoutes = require("./routes/appointments");
@@ -52,30 +52,34 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  socket.on("join", ({ conversationId }) => {
-    const conv = getConversationById(conversationId);
-    if (!conv) {
-      socket.emit("error", { message: "Conversation not found" });
-      return;
+  socket.on("join", async ({ conversationId }) => {
+    try {
+      const conv = await getConversationById(conversationId);
+      if (!conv) {
+        socket.emit("error", { message: "Conversation not found" });
+        return;
+      }
+      if (!conv.participants.includes(socket.user.id)) {
+        socket.emit("error", { message: "Not allowed to join this conversation" });
+        return;
+      }
+      socket.join(conversationId);
+      socket.emit("joined", { conversationId });
+    } catch (err) {
+      socket.emit("error", { message: err.message });
     }
-    if (!conv.participants.includes(socket.user.id)) {
-      socket.emit("error", { message: "Not allowed to join this conversation" });
-      return;
-    }
-    socket.join(conversationId);
-    socket.emit("joined", { conversationId });
   });
 
-  socket.on("message", ({ conversationId, text }, ack) => {
+  socket.on("message", async ({ conversationId, text }, ack) => {
     try {
-      const conv = getConversationById(conversationId);
+      const conv = await getConversationById(conversationId);
       if (!conv) throw new Error("Conversation not found");
       if (!conv.participants.includes(socket.user.id)) {
         throw new Error("Not allowed to post to this conversation");
       }
       if (!text || !text.trim()) throw new Error("Message text is required");
 
-      const msg = createMessage(conversationId, socket.user.id, text);
+      const msg = await createMessage(conversationId, socket.user.id, text);
       io.to(conversationId).emit("message", msg);
       ack && ack({ ok: true, message: msg });
     } catch (err) {
@@ -85,7 +89,16 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = 4000;
-server.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 4000;
+
+// Initialize database then start server
+init()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`Backend running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialize database:", err);
+    process.exit(1);
+  });

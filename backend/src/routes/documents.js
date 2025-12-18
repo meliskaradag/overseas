@@ -5,18 +5,28 @@ const { listDocumentsForUser, createDocument } = require("../db");
 
 router.use(authMiddleware);
 
-router.get("/", (req, res) => {
-  const docs = listDocumentsForUser(req.user.id);
-  res.json(docs);
+router.get("/", async (req, res) => {
+  try {
+    const docs = await listDocumentsForUser(req.user.id);
+    res.json(docs);
+  } catch (err) {
+    console.error("List documents error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-router.post("/", (req, res) => {
-  const { name, url } = req.body;
-  if (!name || !url) {
-    return res.status(400).json({ message: "Name and URL are required" });
+router.post("/", async (req, res) => {
+  try {
+    const { name, url } = req.body;
+    if (!name || !url) {
+      return res.status(400).json({ message: "Name and URL are required" });
+    }
+    const doc = await createDocument({ userId: req.user.id, name, url });
+    res.status(201).json(doc);
+  } catch (err) {
+    console.error("Create document error:", err);
+    res.status(500).json({ message: "Server error" });
   }
-  const doc = createDocument({ userId: req.user.id, name, url });
-  res.status(201).json(doc);
 });
 
 module.exports = router;

@@ -7,58 +7,77 @@ const { listConversationsForUser, listMessagesForConversation, createMessage, cr
 router.use(authMiddleware);
 
 // Conversations of a user
-router.get("/", (req, res) => {
-  const userId = req.query.userId || req.user?.id;
-  if (!userId) return res.status(400).json({ message: "userId is required" });
-
-  res.json(listConversationsForUser(userId));
+router.get("/", async (req, res) => {
+  try {
+    const userId = req.query.userId || req.user?.id;
+    if (!userId) return res.status(400).json({ message: "userId is required" });
+    const conversations = await listConversationsForUser(userId);
+    res.json(conversations);
+  } catch (err) {
+    console.error("List conversations error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // Messages of a conversation
-router.get("/:conversationId/messages", (req, res) => {
-  const { conversationId } = req.params;
-  const conv = getConversationById(conversationId);
-  if (!conv) return res.status(404).json({ message: "Conversation not found" });
-  if (!conv.participants.includes(req.user.id)) {
-    return res.status(403).json({ message: "Forbidden" });
+router.get("/:conversationId/messages", async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const conv = await getConversationById(conversationId);
+    if (!conv) return res.status(404).json({ message: "Conversation not found" });
+    if (!conv.participants.includes(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const messages = await listMessagesForConversation(conversationId);
+    res.json(messages);
+  } catch (err) {
+    console.error("Get messages error:", err);
+    res.status(500).json({ message: "Server error" });
   }
-  res.json(listMessagesForConversation(conversationId));
 });
 
 // New message
-router.post("/:conversationId/messages", (req, res) => {
-  const { conversationId } = req.params;
-  const { text } = req.body;
+router.post("/:conversationId/messages", async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { text } = req.body;
 
-  const conv = getConversationById(conversationId);
-  if (!conv) return res.status(404).json({ message: "Conversation not found" });
-  if (!conv.participants.includes(req.user.id)) {
-    return res.status(403).json({ message: "Forbidden" });
-  }
+    const conv = await getConversationById(conversationId);
+    if (!conv) return res.status(404).json({ message: "Conversation not found" });
+    if (!conv.participants.includes(req.user.id)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
 
-  const msg = createMessage(conversationId, req.user.id, text);
-  const io = req.app.get("io");
-  if (io) {
-    io.to(conversationId).emit("message", msg);
+    const msg = await createMessage(conversationId, req.user.id, text);
+    const io = req.app.get("io");
+    if (io) {
+      io.to(conversationId).emit("message", msg);
+    }
+    res.status(201).json(msg);
+  } catch (err) {
+    console.error("Create message error:", err);
+    res.status(500).json({ message: "Server error" });
   }
-  res.status(201).json(msg);
 });
 
 // Create conversation
-router.post("/", (req, res) => {
-  const { participantIds } = req.body;
-  if (!participantIds || participantIds.length < 2) {
-    return res
-      .status(400)
-      .json({ message: "At least two participants are required" });
-  }
+router.post("/", async (req, res) => {
+  try {
+    const { participantIds } = req.body;
+    if (!participantIds || participantIds.length < 2) {
+      return res.status(400).json({ message: "At least two participants are required" });
+    }
 
-  if (!participantIds.includes(req.user.id)) {
-    return res.status(403).json({ message: "You must be part of the conversation" });
-  }
+    if (!participantIds.includes(req.user.id)) {
+      return res.status(403).json({ message: "You must be part of the conversation" });
+    }
 
-  const conv = createConversation(participantIds);
-  res.status(201).json(conv);
+    const conv = await createConversation(participantIds);
+    res.status(201).json(conv);
+  } catch (err) {
+    console.error("Create conversation error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 module.exports = router;

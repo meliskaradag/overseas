@@ -3,13 +3,25 @@ const router = express.Router();
 const { listUsersByRole } = require("../db");
 
 // All consultants
-router.get("/consultants", (req, res) => {
-  res.json(listUsersByRole("consultant"));
+router.get("/consultants", async (req, res) => {
+  try {
+    const users = await listUsersByRole("consultant");
+    res.json(users);
+  } catch (err) {
+    console.error("List consultants error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // All representatives
-router.get("/representatives", (req, res) => {
-  res.json(listUsersByRole("representative"));
+router.get("/representatives", async (req, res) => {
+  try {
+    const users = await listUsersByRole("representative");
+    res.json(users);
+  } catch (err) {
+    console.error("List representatives error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 module.exports = router;

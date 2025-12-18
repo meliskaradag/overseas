@@ -5,15 +5,25 @@ const { getRatings, saveRatings } = require("../db");
 
 router.use(authMiddleware);
 
-router.get("/", (req, res) => {
-  const ratings = getRatings(req.user.id);
-  res.json(ratings);
+router.get("/", async (req, res) => {
+  try {
+    const ratings = await getRatings(req.user.id);
+    res.json(ratings);
+  } catch (err) {
+    console.error("Get ratings error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-router.put("/", (req, res) => {
-  const { consultant = null, representative = null } = req.body || {};
-  const updated = saveRatings(req.user.id, { consultant, representative });
-  res.json(updated);
+router.put("/", async (req, res) => {
+  try {
+    const { consultant = null, representative = null } = req.body || {};
+    const updated = await saveRatings(req.user.id, { consultant, representative });
+    res.json(updated);
+  } catch (err) {
+    console.error("Save ratings error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 module.exports = router;
