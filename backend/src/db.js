@@ -356,9 +356,6 @@ const createUser = ({ name, email, password, role }) => {
 const listUsersByRole = (role) =>
   db.prepare("SELECT * FROM users WHERE role = ?").all(role).map(rowToUser);
 
-const getUserByEmailAndRole = (email, role) =>
-  db.prepare("SELECT * FROM users WHERE email = ? AND role = ?").get(email, role);
-
 // Property helpers
 const listProperties = (filters = {}) => {
   const rows = db.prepare("SELECT * FROM properties").all();
@@ -641,7 +638,6 @@ module.exports = {
   db,
   getUserForLogin,
   getUserByEmail,
-  getUserByEmailAndRole,
   createUser,
   listUsersByRole,
   listProperties,

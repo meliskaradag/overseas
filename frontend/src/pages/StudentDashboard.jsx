@@ -124,9 +124,10 @@ export default function StudentDashboard() {
     };
   }, [preferences]);
 
-  const hasConsultant = preferences?.workWithConsultant === "yes";
+  const consultantId = preferences?.consultantId || null;
+  const hasConsultant = Boolean(consultantId);
   const consultantName = hasConsultant ? preferences?.consultantName || "Assigned: Alice Cooper" : "-";
-  const consultantId = preferences?.consultantId || (hasConsultant ? "u2" : null);
+  const needsConsultantPaymentNotice = preferences?.workWithConsultant === "yes" && !hasConsultant;
   const activeRepresentative = repAppointments.find((r) => r.status !== "terminated");
   const representativeName = activeRepresentative?.meta?.representativeName || null;
   const repId = activeRepresentative?.meta?.representativeId || null;
@@ -742,6 +743,16 @@ export default function StudentDashboard() {
                   <button className="btn btn-secondary" onClick={() => setView("consultant")}>Go to consultant</button>
                 </div>
               )}
+              {needsConsultantPaymentNotice && (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, border: "1px dashed #0f172a20", background: "#fff9f0" }}>
+                  <div style={{ fontWeight: 600, color: "#b45309" }}>
+                    Consultant pairing pending — complete payment to finish assignment.
+                  </div>
+                  <button className="btn btn-secondary" onClick={() => handleRequestConsultant({ triggeredByClick: true })}>
+                    Complete payment
+                  </button>
+                </div>
+              )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
                 {criteriaItems.map((item) => (
                   <div key={item.label} style={{
@@ -884,6 +895,11 @@ export default function StudentDashboard() {
               <div style={{ color: "var(--muted)" }}>Assigned: {hasConsultant ? consultantName : "None"}</div>
               {!hasConsultant && (
                 <div style={{ display: "grid", gap: 8 }}>
+                  {needsConsultantPaymentNotice && (
+                    <div style={{ border: "1px dashed #f97316", borderRadius: 10, padding: "8px 10px", background: "#fff7ed", color: "#b45309", fontWeight: 600 }}>
+                      You already selected “Pair me with a consultant” during onboarding. Complete the payment below to finish the match.
+                    </div>
+                  )}
                   <label>
                     Preferred focus
                     <select

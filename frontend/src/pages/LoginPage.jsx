@@ -6,8 +6,7 @@ import { useAuth } from "../context/AuthContext";
 export default function LoginPage() {
   const [form, setForm] = useState({
     email: "",
-    password: "",
-    role: "student"
+    password: ""
   });
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -28,7 +27,10 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     try {
-      const res = await api.post("/auth/login", form);
+      const res = await api.post("/auth/login", {
+        email: form.email,
+        password: form.password
+      });
       login({ user: res.data.user, token: res.data.token });
 
       if (res.data.user.role === "student") navigate("/student");
@@ -73,15 +75,6 @@ export default function LoginPage() {
               required
             />
           </label>
-          <label>
-            Role
-      <select name="role" value={form.role} onChange={handleChange}>
-        <option value="student">Student</option>
-        <option value="consultant">Consultant</option>
-        <option value="representative">Local representative</option>
-        <option value="owner">Owner</option>
-      </select>
-    </label>
           {error && <p style={{ color: "crimson", margin: 0 }}>{error}</p>}
           <button className="btn btn-primary" type="submit">
             Continue

@@ -1,14 +1,17 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const router = express.Router();
-const { getUserByEmail, createUser, getUserByEmailAndRole } = require("../db");
+const { getUserByEmail, createUser } = require("../db");
 const { signToken } = require("../middleware/auth");
 
 // Login
 router.post("/login", async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ message: "Missing credentials" });
+  }
 
-  const user = getUserByEmailAndRole(email, role);
+  const user = getUserByEmail(email);
 
   if (!user) {
     return res.status(401).json({ message: "Invalid credentials" });
